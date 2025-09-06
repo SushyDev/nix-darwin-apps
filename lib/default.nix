@@ -93,7 +93,7 @@ let
 
 			mkdir -p $out/Applications
 
-			installer -pkg "$src" -target $out/Applications -dumplog -verboseR | tee install.log
+			installer -pkg "$src" -target /
 
 			runHook postInstall
 		'';
