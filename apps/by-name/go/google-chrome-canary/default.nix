@@ -6,7 +6,7 @@ lib.mkDmgApp rec {
 
 	src = pkgs.fetchurl {
 		url = "https://dl.google.com/chrome/mac/universal/canary/googlechromecanary.dmg";
-		sha256 = "0qr3y9hd1c1pba08fx87s1spr7yilp1f9xh1nid7v2zynbmn9nka";
+		sha256 = "sha256-0fgy9KMfnBEoO9c8/KwvB49ZENPgovAGnn8VNtt0/qc=";
 	};
 
 	meta = with pkgs.lib; {
