@@ -3,9 +3,9 @@ let
 	mkDmgApp = { pname, version, src, meta }: pkgs.stdenv.mkDerivation rec {
 		inherit pname version src meta;
 
-		# phases = [ "unpackPhase" "installPhase" ];
-		# dontFixup = true;
-		# dontStrip = true;
+		phases = [ "unpackPhase" "installPhase" ];
+		dontFixup = true;
+		dontStrip = true;
 
 		unpackPhase = ''
 			runHook preUnpack
