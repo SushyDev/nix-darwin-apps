@@ -6,7 +6,7 @@ lib.mkDmgApp rec {
 
 	src = pkgs.fetchurl {
 		url = "https://downloads.vivaldi.com/stable/Vivaldi.${version}.universal.dmg";
-		sha256 = "sha256-1lfsacdw8kw7m7jj1640xi7ymyq7i0g7k8ggc0swia2v8zj6h4m2";
+		sha256 = "1lfsacdw8kw7m7jj1640xi7ymyq7i0g7k8ggc0swia2v8zj6h4m2";
 	};
 
 	meta = with pkgs.lib; {
