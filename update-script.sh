@@ -2,7 +2,7 @@
 
 set +e
 
-nix develop .#update --command bash -c "./${{ matrix.item.script }}"
+nix develop .#update --command bash -c "./$SCRIPT"
 
 EXIT_CODE=$?
 
