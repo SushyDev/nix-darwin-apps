@@ -1,0 +1,215 @@
+name: Update Packages
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Specific package to update (leave empty for all)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  discover-packages:
+    name: Discover Update Scripts
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.find-scripts.outputs.matrix }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Find update scripts
+        id: find-scripts
+        run: |
+          scripts=$(find apps/by-name -type f -name 'update.sh' -executable | jq -R -s -c 'split("\n")[:-1] | map({script: ., package: (. | split("/") | .[-2])})')
+
+          if [[ "${{ github.event.inputs.package }}" != "" ]]; then
+          scripts=$(echo "$scripts" | jq -c "[.[] | select(.package == \"${{ github.event.inputs.package }}\")]")
+          fi
+
+          echo "matrix=$scripts" >> "$GITHUB_OUTPUT"
+          echo "Found scripts:"
+          echo "$scripts" | jq .
+
+  update-package:
+    name: Update ${{ matrix.item.package }}
+    runs-on: macos-latest
+    needs: discover-packages
+    if: needs.discover-packages.outputs.matrix != '[]'
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        item: ${{ fromJson(needs.discover-packages.outputs.matrix) }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v14
+        with:
+          extra-conf: |
+            accept-flake-config = true
+            experimental-features = nix-command flakes
+
+      - name: Setup Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@v8
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Run update script
+        id: update
+        run: |
+          set +e
+
+          nix develop .#update --command bash -c "
+            set -euo pipefail
+            cd \"\$OLDPWD\"
+            ./${{ matrix.item.script }}
+
+            echo $(nix eval --json .\#packagesInfo.aarch64-darwin.vivaldi.version)
+            echo "current_version=$(nix eval --json .\#packagesInfo.aarch64-darwin.vivaldi.version)" >> "$GITHUB_OUTPUT"
+          "
+
+          EXIT_CODE=$?
+
+          if [[ $EXIT_CODE -eq 0 ]]; then
+            echo "status=success" >> "$GITHUB_OUTPUT"
+
+            # Check if there are changes
+            if git diff --quiet; then
+              echo "has_changes=false" >> "$GITHUB_OUTPUT"
+              echo "No changes detected"
+            else
+              echo "has_changes=true" >> "$GITHUB_OUTPUT"
+
+              OLD_FILE_CONTENT=$(
+
+              # Extract version information from git diff
+              OLD_VERSION=$(git diff apps/by-name/${{ matrix.item.package }}/*/default.nix | grep -E '^-.*version = ' | sed -E 's/.*version = "([^"]+)".*/\1/' | head -n1 || echo "unknown")
+              NEW_VERSION=$(git diff apps/by-name/${{ matrix.item.package }}/*/default.nix | grep -E '^\+.*version = ' | sed -E 's/.*version = "([^"]+)".*/\1/' | head -n1 || echo "unknown")
+
+              echo "old_version=$OLD_VERSION" >> "$GITHUB_OUTPUT"
+              echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+
+              echo "Updated from $OLD_VERSION to $NEW_VERSION"
+            fi
+          else
+            echo "status=failed" >> "$GITHUB_OUTPUT"
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "Update script failed with exit code $EXIT_CODE"
+          fi
+
+      - name: Create update branch
+        if: steps.update.outputs.has_changes == 'true'
+        id: branch
+        run: |
+          BRANCH_NAME="update/${{ matrix.item.package }}-$(date +%Y%m%d-%H%M%S)"
+          echo "name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
+          git checkout -b "$BRANCH_NAME"
+
+      - name: Run nix flake check
+        if: steps.update.outputs.has_changes == 'true'
+        id: check
+        run: |
+          set +e
+          nix flake check --no-build --show-trace
+          EXIT_CODE=$?
+
+          if [[ $EXIT_CODE -eq 0 ]]; then
+          echo "status=success" >> "$GITHUB_OUTPUT"
+          else
+          echo "status=failed" >> "$GITHUB_OUTPUT"
+          fi
+
+          exit $EXIT_CODE
+
+      - name: Commit changes
+        if: steps.update.outputs.has_changes == 'true' && steps.check.outputs.status == 'success'
+        run: |
+          git add -A
+          git commit -m "chore: update ${{ matrix.item.package }} to ${{ steps.update.outputs.new_version }}" \
+          -m "Automated update from ${{ steps.update.outputs.old_version }} to ${{ steps.update.outputs.new_version }}" \
+          -m "Updated by GitHub Actions workflow"
+
+      - name: Push branch
+        if: steps.update.outputs.has_changes == 'true' && steps.check.outputs.status == 'success'
+        run: |
+          git push origin "${{ steps.branch.outputs.name }}"
+
+      - name: Create Pull Request
+        if: steps.update.outputs.has_changes == 'true' && steps.check.outputs.status == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PR_BODY="## 🤖 Automated Package Update
+
+          **Package:** \`${{ matrix.item.package }}\`
+          **Previous Version:** \`${{ steps.update.outputs.old_version }}\`
+          **New Version:** \`${{ steps.update.outputs.new_version }}\`
+
+          ---
+
+          ### Changes
+          This PR updates the package definition with:
+          - ✅ New version number
+          - ✅ Updated SHA256 checksum
+          - ✅ Verified package evaluation
+          - ✅ Passed \`nix flake check\`
+
+          ### Automation Details
+          - **Workflow:** ${{ github.workflow }}
+          - **Run ID:** ${{ github.run_id }}
+          - **Triggered:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+
+          ---
+
+          <details>
+          <summary>📋 Update Script Output</summary>
+
+          \`\`\`
+          See job logs for detailed output: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          \`\`\`
+
+          </details>
+
+          ---
+
+          Please review and merge if everything looks correct."
+
+          gh pr create \
+          --title "chore: update ${{ matrix.item.package }} to ${{ steps.update.outputs.new_version }}" \
+          --body "$PR_BODY" \
+          --base main \
+          --head "${{ steps.branch.outputs.name }}" \
+          --label "automated" \
+          --label "dependencies"
+
+      - name: Report status
+        if: always()
+        run: |
+          echo "## Update Summary for ${{ matrix.item.package }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Update Script | ${{ steps.update.outputs.status == 'success' && '✅ Success' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Has Changes | ${{ steps.update.outputs.has_changes == 'true' && '✅ Yes' || '⚠️ No' }} |" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ steps.update.outputs.has_changes }}" == "true" ]]; then
+          echo "| Nix Check | ${{ steps.check.outputs.status == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Old Version | \`${{ steps.update.outputs.old_version }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| New Version | \`${{ steps.update.outputs.new_version }}\` |" >> $GITHUB_STEP_SUMMARY
+          fi

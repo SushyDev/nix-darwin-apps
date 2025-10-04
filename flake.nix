@@ -9,46 +9,96 @@
 			systems = [ "x86_64-darwin" "aarch64-darwin" ];
 			forAllSystems = nixpkgs.lib.genAttrs systems;
 
+			getPkgs = system: import nixpkgs { 
+				inherit system;
+				config = { 
+					allowUnfree = true;
+				};
+			};
+
 			darwinAppsFor = pkgs:
 				let
-					lib = nixpkgs.lib;
+					lib = import (./lib/default.nix) { inherit pkgs; };
 					appsPath = ./apps/by-name;
-
-					letterDirs = lib.attrNames (builtins.readDir appsPath);
-
-					packageList = lib.concatMap (letter:
+					letterDirs = nixpkgs.lib.attrNames (builtins.readDir appsPath);
+					packageList = nixpkgs.lib.concatMap (letter:
 						let
 							letterPath = appsPath + "/${letter}";
-							appNames = lib.attrNames (builtins.readDir letterPath);
+							appNames = nixpkgs.lib.attrNames (builtins.readDir letterPath);
 						in
-						lib.map (appName:
+						nixpkgs.lib.map (appName:
 							let
 								appPath = letterPath + "/${appName}/default.nix";
 								appDerivation = (import appPath) {
-									inherit inputs pkgs; 
-									lib = import (./lib/default.nix) {
-										inherit pkgs;
-									};
+									inherit inputs lib pkgs;
 								};
 							in
-							lib.nameValuePair appName appDerivation
+							nixpkgs.lib.nameValuePair appName appDerivation
 						) appNames
 					) letterDirs;
 				in
-				lib.listToAttrs packageList;
+				nixpkgs.lib.listToAttrs packageList;
+
+			getInfo = packages:
+				nixpkgs.lib.mapAttrs (name: pkg: {
+					inherit name;
+					version = pkg.version or "unknown";
+					sha256 = pkg.src.outputHash or "unknown";
+					url = builtins.head pkg.src.urls or "unknown";
+				}) packages;
 		in
 		{
-			packages = 
+			inherit systems;
+
+			packages = forAllSystems (system:
 				let
-					pkgs = system: import nixpkgs { 
-						inherit system;
-						config = { 
-							allowUnfree = true;
-						};
-					};
+					pkgs = system: getPkgs system;
 				in
-				forAllSystems (system: darwinAppsFor (pkgs system));
+				darwinAppsFor (pkgs system)
+			);
+
+			packagesInfo = forAllSystems (system:
+				let
+					pkgs = system: getPkgs system;
+				in
+				getInfo (darwinAppsFor (pkgs system))
+			);
 
 			overlays.default = final: prev: darwinAppsFor prev;
+
+			devShells = forAllSystems (system:
+				let
+					pkgs = getPkgs system;
+				in
+				{
+					default = pkgs.mkShell {
+						buildInputs = with pkgs; [
+							bash
+							curl
+							jq
+							nix
+							gnugrep
+							gnused
+							coreutils
+						];
+					};
+
+					update = pkgs.mkShell {
+						buildInputs = with pkgs; [
+							bash
+							curl
+							jq
+							nix
+							gnugrep
+							gnused
+							coreutils
+						];
+
+						shellHook = ''
+							echo "Update environment loaded"
+							echo "Run: ./apps/by-name/*/*/update.sh"
+						'';
+					};
+				});
 		};
 }

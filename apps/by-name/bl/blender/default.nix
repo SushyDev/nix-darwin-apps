@@ -7,7 +7,7 @@ lib.mkDmgApp rec {
 	src = if pkgs.stdenv.hostPlatform.isAarch64 
 		then (pkgs.fetchurl {
 			url = "https://download.blender.org/release/Blender4.5/blender-${version}-macos-arm64.dmg";
-			sha256 = "0bc20xnawv8xm4hp7ams1301nwm5q3y8k8hq7lmnrihmv80is6g5";
+			sha256 = "e5191d01da15c66c2b3d18a289fcc0a5721bc008baaa7321a91d6dae6c07822d";
 		})
 		else (pkgs.fetchurl {
 			url = "https://download.blender.org/release/Blender4.5/blender-${version}-macos-x64.dmg";
