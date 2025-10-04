@@ -71,18 +71,6 @@
 					pkgs = getPkgs system;
 				in
 				{
-					default = pkgs.mkShell {
-						buildInputs = with pkgs; [
-							bash
-							curl
-							jq
-							nix
-							gnugrep
-							gnused
-							coreutils
-						];
-					};
-
 					update = pkgs.mkShell {
 						buildInputs = with pkgs; [
 							bash
@@ -93,11 +81,6 @@
 							gnused
 							coreutils
 						];
-
-						shellHook = ''
-							echo "Update environment loaded"
-							echo "Run: ./apps/by-name/*/*/update.sh"
-						'';
 					};
 				});
 		};
