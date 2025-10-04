@@ -162,7 +162,7 @@ jobs:
       - name: Push branch
         if: steps.branch.outputs.status == 'success'
         run: |
-          git push origin "${{ steps.branch.outputs.branch_name }}"
+          git push origin "${{ steps.branch_check.outputs.branch_name }}"
 
       - name: Create Pull Request
         if: steps.branch.outputs.status == 'success'
