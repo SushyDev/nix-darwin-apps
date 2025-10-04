@@ -2,16 +2,16 @@
 
 lib.mkDmgApp rec {
 	pname = "blender";
-	version = "4.5.2";
+	version = "4.5.3";
 
 	src = if pkgs.stdenv.hostPlatform.isAarch64 
 		then (pkgs.fetchurl {
 			url = "https://download.blender.org/release/Blender4.5/blender-${version}-macos-arm64.dmg";
-			sha256 = "e5191d01da15c66c2b3d18a289fcc0a5721bc008baaa7321a91d6dae6c07822d";
+			sha256 = "06yh57wzz9smifgqjp7yhwbq5y7icqis5abi7axh8m5mac889skk";
 		})
 		else (pkgs.fetchurl {
 			url = "https://download.blender.org/release/Blender4.5/blender-${version}-macos-x64.dmg";
-			sha256 = "1s99b446zzd508v52a5v3clmv7gfl61whk8pmpy9b5ad8zr9y93v";
+			sha256 = "065yxqd326nzyxadsx5cbczbvkih9m85rmlsclc7kczixqq8zzf1";
 		});
 
 	meta = with pkgs.lib; {
