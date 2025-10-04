@@ -75,36 +75,38 @@ jobs:
         id: update
         run: |
           set +e
-          
+
           readonly NAME="${{ matrix.item.name }}"
           readonly SCRIPT="${{ matrix.item.script }}"
-          
-          readonly OLD_VERSION=$(nix eval --raw .\#packagesInfo.aarch64-darwin.$NAME.version)
-          	echo "old_version=$OLD_VERSION" >> "$GITHUB_OUTPUT"
-          
+
+          readonly CURRENT_VERSION=$(nix eval --raw .\#packagesInfo.aarch64-darwin.$NAME.version)
+          echo "Current version: $CURRENT_VERSION"
+          echo "current_version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
+
           nix develop .#update --command bash -c "./$SCRIPT"
-          
+
           EXIT_CODE=$?
-          
+
           if [[ $EXIT_CODE -eq 0 ]]; then
-          	echo "status=success" >> "$GITHUB_OUTPUT"
-          
-          	readonly NEW_VERSION=$(nix eval --raw .\#packagesInfo.aarch64-darwin.$NAME.version)
-          		echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
-          
-          	if git diff --quiet; then
-          		echo "has_changes=false" >> "$GITHUB_OUTPUT"
-          	else
-          		echo "has_changes=true" >> "$GITHUB_OUTPUT"
-          	fi
+            echo "status=success" >> "$GITHUB_OUTPUT"
+
+            readonly NEW_VERSION=$(nix eval --raw .\#packagesInfo.aarch64-darwin.$NAME.version)
+            echo "New version: $NEW_VERSION"
+            echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+
+            if git diff --quiet; then
+              echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "has_changes=true" >> "$GITHUB_OUTPUT"
+            fi
           else
-          	echo "status=failed" >> "$GITHUB_OUTPUT"
-          	echo "has_changes=false" >> "$GITHUB_OUTPUT"
-          	echo "Update script failed with exit code $EXIT_CODE"
+            echo "status=failed" >> "$GITHUB_OUTPUT"
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "Update script failed with exit code $EXIT_CODE"
           fi
 
       - name: Run nix flake check
-        if: steps.update.outputs.has_changes == 'true'
+        if: steps.update.outputs.status == 'success' && steps.update.outputs.has_changes == 'true'
         id: check
         run: |
           set +e
@@ -156,7 +158,7 @@ jobs:
         run: |
           git add $(dirname ${{ matrix.item.script }})
           git commit -m "chore: update ${{ matrix.item.package }} to ${{ steps.update.outputs.new_version }}" \
-          -m "Automated update from ${{ steps.update.outputs.old_version }} to ${{ steps.update.outputs.new_version }}" \
+          -m "Automated update from ${{ steps.update.outputs.current_version }} to ${{ steps.update.outputs.new_version }}" \
           -m "Updated by GitHub Actions workflow"
 
       - name: Push branch
@@ -172,7 +174,7 @@ jobs:
           PR_BODY="## 🤖 Automated Package Update
 
           **Package:** \`${{ matrix.item.package }}\`
-          **Previous Version:** \`${{ steps.update.outputs.old_version }}\`
+          **Previous Version:** \`${{ steps.update.outputs.current_version }}\`
           **New Version:** \`${{ steps.update.outputs.new_version }}\`
 
           ---
@@ -223,7 +225,7 @@ jobs:
           echo "| Has Changes | ${{ steps.update.outputs.has_changes == 'true' && '✅ Yes' || '⚠️ No' }} |" >> $GITHUB_STEP_SUMMARY
 
           if [[ "${{ steps.update.outputs.has_changes }}" == "true" ]]; then
-          echo "| Nix Check | ${{ steps.check.outputs.status == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Old Version | \`${{ steps.update.outputs.old_version }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| New Version | \`${{ steps.update.outputs.new_version }}\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| Nix Check | ${{ steps.check.outputs.status == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| Current Version | \`${{ steps.update.outputs.current_version }}\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| New Version | \`${{ steps.update.outputs.new_version }}\` |" >> $GITHUB_STEP_SUMMARY
           fi
