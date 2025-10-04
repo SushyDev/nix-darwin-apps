@@ -12,7 +12,7 @@ EXIT_CODE=$?
 if [[ $EXIT_CODE -eq 0 ]]; then
 	echo "status=success" >> "$GITHUB_OUTPUT"
 
-	readonly NEW_VERSION="$(nix eval --json .\#packagesInfo.aarch64-darwin.vivaldi.version)"
+	readonly NEW_VERSION=$(nix eval --raw .\#packagesInfo.aarch64-darwin.vivaldi.version)
 		echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
 
 	if git diff --quiet; then
