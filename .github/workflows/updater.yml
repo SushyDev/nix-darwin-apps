@@ -79,9 +79,7 @@ jobs:
       - name: Run update script
         id: update
         run: |
-          readonly SCRIPT="${{ matrix.item.script }}"
-
-          ./update-script.sh
+          ./update-script.sh "${{ matrix.item.name }}" "${{ matrix.item.script }}"
 
       - name: Create update branch
         if: steps.update.outputs.has_changes == 'true'

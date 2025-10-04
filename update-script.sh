@@ -2,6 +2,9 @@
 
 set +e
 
+readonly NAME="$1"
+readonly SCRIPT="$2"
+
 nix develop .#update --command bash -c "./$SCRIPT"
 
 EXIT_CODE=$?
