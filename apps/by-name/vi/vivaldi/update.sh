@@ -101,18 +101,6 @@ extract_version_from_url() {
 	echo "$version"
 }
 
-compare_versions() {
-	local -r new_version="$1"
-	local -r current_version="$2"
-
-	log_info "Comparing versions: current=$current_version, new=$new_version"
-
-	local -r result=$(nix eval --impure --raw --expr "builtins.toString (builtins.compareVersions \"$new_version\" \"$current_version\")" 2>/dev/null) || \
-		die "Failed to compare versions"
-
-	echo "$result"
-}
-
 fetch_sha256() {
 	local -r url="$1"
 
@@ -170,29 +158,20 @@ universal() {
 
 	read -r current_version current_sha256 < <(get_current_package_info "aarch64-darwin" "vivaldi")
 
-	local -r DOWNLOAD_PATTERN='https://downloads\.vivaldi\.com/stable/Vivaldi\.[0-9.]+\.universal\.dmg'
-	local -r DOWNLOAD_EXTRACT_PATTERN=$DOWNLOAD_PATTERN
-	local -r VERSION_PATTERN='Vivaldi\.([0-9.]+)\.universal\.dmg'
-	local -r VERSION_EXTRACT_PATTERN='s/Vivaldi\.([0-9.]+)\.universal\.dmg/\1/'
+	local -r download_pattern='https://downloads\.vivaldi\.com/stable/Vivaldi\.[0-9.]+\.universal\.dmg'
+	local -r download_extract_pattern=$DOWNLOAD_PATTERN
+	local -r version_pattern='Vivaldi\.([0-9.]+)\.universal\.dmg'
+	local -r version_extract_pattern='s/Vivaldi\.([0-9.]+)\.universal\.dmg/\1/'
 
-	local page_content download_url new_version
-	page_content="$(fetch_page_content)"
-	download_url="$(extract_download_url "$page_content" $DOWNLOAD_PATTERN $DOWNLOAD_EXTRACT_PATTERN)"
-	new_version="$(extract_version_from_url "$download_url" $VERSION_PATTERN $VERSION_EXTRACT_PATTERN)"
+	local -r page_content="$(fetch_page_content)"
+	local -r download_url="$(extract_download_url "$page_content" $download_pattern $download_extract_pattern)"
+	local -r new_version="$(extract_version_from_url "$download_url" $version_pattern $version_extract_pattern)"
+	local -r new_sha256="$(fetch_sha256 "$download_url")"
 
-	local comparison_result
-	comparison_result="$(compare_versions "$new_version" "$current_version")"
-
-	if [ "$comparison_result" -ne 1 ]; then
-		log_info "No update needed. Current version ($current_version) is up to date with available version ($new_version)."
+	if [[ $new_sha256 != "" && "$new_sha256" == "$current_sha256" ]]; then
+		log_info "No update needed: SHA256 checksum matches current version"
 		return
-		exit 0
 	fi
-
-	log_info "New version available"
-
-	local new_sha256
-	new_sha256="$(fetch_sha256 "$download_url")"
 
 	update_package_file "$current_version" "$current_sha256" "$new_version" "$new_sha256"
 

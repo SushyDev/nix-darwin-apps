@@ -100,18 +100,6 @@ extract_version_from_url() {
 	echo "$version"
 }
 
-compare_versions() {
-	local -r new_version="$1"
-	local -r current_version="$2"
-
-	log_info "Comparing versions: current=$current_version, new=$new_version"
-
-	local -r result=$(nix eval --impure --raw --expr "builtins.toString (builtins.compareVersions \"$new_version\" \"$current_version\")" 2>/dev/null) || \
-		die "Failed to compare versions"
-
-	echo "$result"
-}
-
 fetch_sha256() {
 	local -r url="$1"
 
@@ -164,24 +152,6 @@ update_package_file() {
 	log_info "SHA256: $new_sha256"
 }
 
-find_new_version() {
-	log_info "Checking if there is a new version available"
-
-	local -r page_url='https://data.services.jetbrains.com/products/releases?code=PS'
-
-	local -r page_content=$(curl -sL --fail --max-time 30 "$page_url" 2>/dev/null) || \
-		die "Failed to fetch page content from $PAGE_URL"
-
-	[ -n "$page_content" ] || die "Received empty page content"
-
-	local -r VERSION=$(echo "$page_content" | jq -r '.PS[0].version' 2>/dev/null) || \
-		die "Failed to parse version from page content"
-
-	[ -n "$VERSION" ] && [ "$VERSION" != "null" ] || die "Invalid version parsed from page content"
-
-	echo "$VERSION"
-}
-
 aarch64() {
 	set -f
 
@@ -189,18 +159,20 @@ aarch64() {
 
 	read -r current_version current_sha256 < <(get_current_package_info "aarch64-darwin" "phpstorm")
 
-	local -r PAGE_URL='https://data.services.jetbrains.com/products/releases?code=PS'
-	local -r DOWNLOAD_PATTERN="https://download\.jetbrains\.com/webide/PhpStorm-[0-9.]+-aarch64\.dmg"
-	local -r VERSION_PATTERN='PhpStorm-([0-9.]+)-aarch64\.dmg'
-	local -r VERSION_EXTRACT_PATTERN='s/PhpStorm-([0-9.]+)-aarch64\.dmg/\1/'
+	local -r page_url='https://data.services.jetbrains.com/products/releases?code=PS'
+	local -r download_pattern="https://download\.jetbrains\.com/webide/PhpStorm-[0-9.]+-aarch64\.dmg"
+	local -r version_pattern='PhpStorm-([0-9.]+)-aarch64\.dmg'
+	local -r version_extract_pattern='s/PhpStorm-([0-9.]+)-aarch64\.dmg/\1/'
 
-	local page_content download_url new_version
-	page_content="$(fetch_page_content $PAGE_URL)"
-	download_url="$(extract_download_url "$page_content" $DOWNLOAD_PATTERN)"
-	new_version="$(extract_version_from_url "$download_url" $VERSION_PATTERN $VERSION_EXTRACT_PATTERN)"
+	local -r page_content="$(fetch_page_content $page_url)"
+	local -r download_url="$(extract_download_url "$page_content" $download_pattern)"
+	local -r new_version="$(extract_version_from_url "$download_url" $version_pattern $version_extract_pattern)"
+	local -r new_sha256="$(fetch_sha256 "$download_url")"
 
-	local new_sha256
-	new_sha256="$(fetch_sha256 "$download_url")"
+	if [[ $new_sha256 != "" && "$new_sha256" == "$current_sha256" ]]; then
+		log_info "No update needed: SHA256 checksum matches current version"
+		return
+	fi
 
 	update_package_file "$current_version" "$current_sha256" "$new_version" "$new_sha256"
 
@@ -216,18 +188,20 @@ x86_64() {
 
 	read -r current_version current_sha256 < <(get_current_package_info "x86_64-darwin" "phpstorm")
 
-	local -r PAGE_URL='https://data.services.jetbrains.com/products/releases?code=PS'
-	local -r DOWNLOAD_PATTERN="https://download\.jetbrains\.com/webide/PhpStorm-[0-9.]+\.dmg"
-	local -r VERSION_PATTERN='PhpStorm-([0-9.]+)\.dmg'
-	local -r VERSION_EXTRACT_PATTERN='s/PhpStorm-([0-9.]+)\.dmg/\1/'
+	local -r page_url='https://data.services.jetbrains.com/products/releases?code=PS'
+	local -r download_pattern="https://download\.jetbrains\.com/webide/PhpStorm-[0-9.]+\.dmg"
+	local -r version_pattern='PhpStorm-([0-9.]+)\.dmg'
+	local -r version_extract_pattern='s/PhpStorm-([0-9.]+)\.dmg/\1/'
 
-	local page_content download_url new_version
-	page_content="$(fetch_page_content $PAGE_URL)"
-	download_url="$(extract_download_url "$page_content" $DOWNLOAD_PATTERN)"
-	new_version="$(extract_version_from_url "$download_url" $VERSION_PATTERN $VERSION_EXTRACT_PATTERN)"
+	local -r page_content="$(fetch_page_content $page_url)"
+	local -r download_url="$(extract_download_url "$page_content" $download_pattern)"
+	local -r new_version="$(extract_version_from_url "$download_url" $version_pattern $version_extract_pattern)"
+	local -r new_sha256="$(fetch_sha256 "$download_url")"
 
-	local new_sha256
-	new_sha256="$(fetch_sha256 "$download_url")"
+	if [[ $new_sha256 != "" && "$new_sha256" == "$current_sha256" ]]; then
+		log_info "No update needed: SHA256 checksum matches current version"
+		return
+	fi
 
 	update_package_file "$current_version" "$current_sha256" "$new_version" "$new_sha256"
 
@@ -241,18 +215,6 @@ main() {
 
 	check_dependencies
 	validate_package_file
-
-	read -r current_version current_sha256 < <(get_current_package_info "aarch64-darwin" "phpstorm")
-	local -r new_version=$(find_new_version)
-	local -r comparison_result="$(compare_versions "$new_version" "$current_version")"
-
-	if [ "$comparison_result" -ne 1 ]; then
-		log_info "No update needed. Current version ($current_version) is up to date with available version ($new_version)."
-		return
-		exit 0
-	fi
-
-	log_info "Update available: $current_version -> $new_version"
 
 	aarch64
 	x86_64

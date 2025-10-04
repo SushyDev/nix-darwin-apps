@@ -100,18 +100,6 @@ extract_version_from_url() {
 	echo "$version"
 }
 
-compare_versions() {
-	local -r new_version="$1"
-	local -r current_version="$2"
-
-	log_info "Comparing versions: current=$current_version, new=$new_version"
-
-	local -r result=$(nix eval --impure --raw --expr "builtins.toString (builtins.compareVersions \"$new_version\" \"$current_version\")" 2>/dev/null) || \
-		die "Failed to compare versions"
-
-	echo "$result"
-}
-
 fetch_sha256() {
 	local -r url="$1"
 
@@ -171,29 +159,20 @@ aarch64() {
 
 	read -r current_version current_sha256 < <(get_current_package_info "aarch64-darwin" "orbstack")
 
-	local -r PAGE_URL='https://orbstack.dev/download/stable/latest/arm64'
-	local -r DOWNLOAD_PATTERN=".*"
-	local -r VERSION_PATTERN='OrbStack_v([0-9.]+)_[0-9]+_arm64\.dmg'
-	local -r VERSION_EXTRACT_PATTERN='s/OrbStack_v([0-9.]+)_([0-9]+)_arm64\.dmg/\1_\2/'
+	local -r page_url='https://orbstack.dev/download/stable/latest/arm64'
+	local -r download_pattern=".*"
+	local -r version_pattern='OrbStack_v([0-9.]+)_[0-9]+_arm64\.dmg'
+	local -r version_extract_pattern='s/OrbStack_v([0-9.]+)_([0-9]+)_arm64\.dmg/\1_\2/'
 
-	local page_content download_url new_version
-	page_content="$(fetch_page_content $PAGE_URL)"
-	download_url="$(extract_download_url "$page_content" $DOWNLOAD_PATTERN)"
-	new_version="$(extract_version_from_url "$download_url" $VERSION_PATTERN $VERSION_EXTRACT_PATTERN)"
+	local -r page_content="$(fetch_page_content $page_url)"
+	local -r download_url="$(extract_download_url "$page_content" $download_pattern)"
+	local -r new_version="$(extract_version_from_url "$download_url" $version_pattern $version_extract_pattern)"
+	local -r new_sha256="$(fetch_sha256 "$download_url")"
 
-	local comparison_result
-	comparison_result="$(compare_versions "$new_version" "$current_version")"
-
-	if [ "$comparison_result" -ne 1 ]; then
-		log_info "No update needed. Current version ($current_version) is up to date with available version ($new_version)."
+	if [[ $new_sha256 != "" && "$new_sha256" == "$current_sha256" ]]; then
+		log_info "No update needed: SHA256 checksum matches current version"
 		return
-		exit 0
 	fi
-
-	log_info "New version available"
-
-	local new_sha256
-	new_sha256="$(fetch_sha256 "$download_url")"
 
 	update_package_file "$current_version" "$current_sha256" "$new_version" "$new_sha256"
 
@@ -207,31 +186,22 @@ x86_64() {
 
 	log_info "Checking for updates on x86_64-darwin"
 
-	read -r current_version current_sha256 < <(get_current_package_info "aarch64-darwin" "orbstack")
+	read -r current_version current_sha256 < <(get_current_package_info "x86_64-darwin" "orbstack")
 
-	local -r PAGE_URL='https://orbstack.dev/download/stable/latest/amd64'
-	local -r DOWNLOAD_PATTERN=".*"
-	local -r VERSION_PATTERN='OrbStack_v([0-9.]+)_[0-9]+_amd64\.dmg'
-	local -r VERSION_EXTRACT_PATTERN='s/OrbStack_v([0-9.]+)_([0-9]+)_amd64\.dmg/\1_\2/'
+	local -r page_url='https://orbstack.dev/download/stable/latest/amd64'
+	local -r download_pattern=".*"
+	local -r version_pattern='OrbStack_v([0-9.]+)_[0-9]+_amd64\.dmg'
+	local -r version_extract_pattern='s/OrbStack_v([0-9.]+)_([0-9]+)_amd64\.dmg/\1_\2/'
 
-	local page_content download_url new_version
-	page_content="$(fetch_page_content $PAGE_URL)"
-	download_url="$(extract_download_url "$page_content" $DOWNLOAD_PATTERN)"
-	new_version="$(extract_version_from_url "$download_url" $VERSION_PATTERN $VERSION_EXTRACT_PATTERN)"
+	local -r page_content="$(fetch_page_content $page_url)"
+	local -r download_url="$(extract_download_url "$page_content" $download_pattern)"
+	local -r new_version="$(extract_version_from_url "$download_url" $version_pattern $version_extract_pattern)"
+	local -r new_sha256="$(fetch_sha256 "$download_url")"
 
-	local comparison_result
-	comparison_result="$(compare_versions "$new_version" "$current_version")"
-
-	if [ "$comparison_result" -ne 1 ]; then
-		log_info "No update needed. Current version ($current_version) is up to date with available version ($new_version)."
+	if [[ $new_sha256 != "" && "$new_sha256" == "$current_sha256" ]]; then
+		log_info "No update needed: SHA256 checksum matches current version"
 		return
-		exit 0
 	fi
-
-	log_info "New version available"
-
-	local new_sha256
-	new_sha256="$(fetch_sha256 "$download_url")"
 
 	update_package_file "$current_version" "$current_sha256" "$new_version" "$new_sha256"
 
