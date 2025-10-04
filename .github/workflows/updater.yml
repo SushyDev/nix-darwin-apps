@@ -79,7 +79,8 @@ jobs:
           readonly NAME="${{ matrix.item.name }}"
           readonly SCRIPT="${{ matrix.item.script }}"
 
-          readonly CURRENT_VERSION=$(nix eval --raw .\#packagesInfo.aarch64-darwin.$NAME.version)
+          readonly CURRENT_VERSION="$(nix eval --raw .\#packagesInfo.aarch64-darwin.$NAME.version)"
+          exit 0
           echo "Current version: $CURRENT_VERSION"
           echo "current_version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
 
@@ -90,7 +91,7 @@ jobs:
           if [[ $EXIT_CODE -eq 0 ]]; then
             echo "status=success" >> "$GITHUB_OUTPUT"
 
-            readonly NEW_VERSION=$(nix eval --raw .\#packagesInfo.aarch64-darwin.$NAME.version)
+            readonly NEW_VERSION="$(nix eval --raw .\#packagesInfo.aarch64-darwin.$NAME.version)"
             echo "New version: $NEW_VERSION"
             echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
 
@@ -221,11 +222,11 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Item | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Update Script | ${{ steps.update.outputs.status == 'success' && '✅ Success' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Has Changes | ${{ steps.update.outputs.has_changes == 'true' && '✅ Yes' || '⚠️ No' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Update Script | ${{ steps.update.outputs.status == 'success' && 'Success' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Has Changes | ${{ steps.update.outputs.has_changes == 'true' && 'Yes' || 'No' }} |" >> $GITHUB_STEP_SUMMARY
 
           if [[ "${{ steps.update.outputs.has_changes }}" == "true" ]]; then
-            echo "| Nix Check | ${{ steps.check.outputs.status == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| Nix Check | ${{ steps.check.outputs.status == 'success' && 'Passed' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
             echo "| Current Version | \`${{ steps.update.outputs.current_version }}\` |" >> $GITHUB_STEP_SUMMARY
             echo "| New Version | \`${{ steps.update.outputs.new_version }}\` |" >> $GITHUB_STEP_SUMMARY
           fi
