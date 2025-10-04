@@ -61,7 +61,7 @@ get_current_package_info() {
 }
 
 fetch_page_content() {
-	local -r fetch_url="https://vivaldi.com/download/"
+	local -r fetch_url="https://www.blender.org/download/"
 
 	log_info "Fetching page content from $fetch_url"
 
@@ -165,15 +165,15 @@ update_package_file() {
 	log_info "SHA256: $new_sha256"
 }
 
-universal() {
-	log_info "Checking for updates on universal-darwin"
+aarch64() {
+	log_info "Checking for updates on aarch64-darwin"
 
-	read -r current_version current_sha256 < <(get_current_package_info "aarch64-darwin" "vivaldi")
+	read -r current_version current_sha256 < <(get_current_package_info "aarch64-darwin" "blender")
 
-	local -r DOWNLOAD_PATTERN='https://downloads\.vivaldi\.com/stable/Vivaldi\.[0-9.]+\.universal\.dmg'
+	local -r DOWNLOAD_PATTERN='https://www\.blender\.org/download/release/Blender4\.5/blender-[0-9.]+-macos-arm64\.dmg'
 	local -r DOWNLOAD_EXTRACT_PATTERN=$DOWNLOAD_PATTERN
-	local -r VERSION_PATTERN='Vivaldi\.([0-9.]+)\.universal\.dmg'
-	local -r VERSION_EXTRACT_PATTERN='s/Vivaldi\.([0-9.]+)\.universal\.dmg/\1/'
+	local -r VERSION_PATTERN='blender-([0-9.]+)-macos-arm64\.dmg'
+	local -r VERSION_EXTRACT_PATTERN='s/blender-([0-9.]+)-macos-arm64\.dmg/\1/'
 
 	local page_content download_url new_version
 	page_content="$(fetch_page_content)"
@@ -196,16 +196,40 @@ universal() {
 
 	update_package_file "$current_version" "$current_sha256" "$new_version" "$new_sha256"
 
-	log_info "Update for universal-darwin completed successfully!"
+	log_info "Update for aarch64-darwin completed successfully!"
+}
+
+x86_64() {
+	log_info "Checking for updates on x86_64-darwin"
+
+	read -r current_version current_sha256 < <(get_current_package_info "x86_64-darwin" "blender")
+
+	local -r DOWNLOAD_PATTERN='https://www\.blender\.org/download/release/Blender4\.5/blender-[0-9.]+-macos-x64\.dmg'
+	local -r DOWNLOAD_EXTRACT_PATTERN=$DOWNLOAD_PATTERN
+	local -r VERSION_PATTERN='blender-([0-9.]+)-macos-x64\.dmg'
+	local -r VERSION_EXTRACT_PATTERN='s/blender-([0-9.]+)-macos-x64\.dmg/\1/'
+
+	local -r page_content="$(fetch_page_content)"
+	local -r download_url="$(extract_download_url "$page_content" $DOWNLOAD_PATTERN $DOWNLOAD_EXTRACT_PATTERN)"
+	local -r new_version="$(extract_version_from_url "$download_url" $VERSION_PATTERN $VERSION_EXTRACT_PATTERN)"
+
+	log_info "New version available"
+
+	local -r new_sha256="$(fetch_sha256 "$download_url")"
+
+	update_package_file "$current_version" "$current_sha256" "$new_version" "$new_sha256"
+
+	log_info "Update for x86_64-darwin completed successfully!"
 }
 
 main() {
-	log_info "Starting Vivaldi update check"
+	log_info "Starting Blender update check"
 
 	check_dependencies
 	validate_package_file
 
-	universal
+	aarch64
+	x86_64
 
 	log_info "Update completed successfully!"
 }
