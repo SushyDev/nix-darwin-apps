@@ -76,12 +76,10 @@ jobs:
         run: |
           set +e
 
-          readonly NAME="${{ matrix.item.name }}"
+          readonly NAME="${{ matrix.item.package }}"
           readonly SCRIPT="${{ matrix.item.script }}"
 
           readonly CURRENT_VERSION="$(nix eval --raw .\#packagesInfo.aarch64-darwin.$NAME.version)"
-          exit 0
-          echo "Current version: $CURRENT_VERSION"
           echo "current_version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
 
           nix develop .#update --command bash -c "./$SCRIPT"
@@ -92,7 +90,6 @@ jobs:
             echo "status=success" >> "$GITHUB_OUTPUT"
 
             readonly NEW_VERSION="$(nix eval --raw .\#packagesInfo.aarch64-darwin.$NAME.version)"
-            echo "New version: $NEW_VERSION"
             echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
 
             if git diff --quiet; then
