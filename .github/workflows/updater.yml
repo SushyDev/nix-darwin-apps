@@ -28,10 +28,16 @@ jobs:
       - name: Find update scripts
         id: find-scripts
         run: |
-          scripts=$(find apps/by-name -type f -name 'update.sh' -executable | jq -R -s -c 'split("\n")[:-1] | map({script: ., package: (. | split("/") | .[-2])})')
+          scripts=$(
+            find apps/by-name -type f -name 'update.sh' -executable | \
+            jq -R -s -c 'split("\n")[:-1] | map({script: ., package: (. | split("/") | .[-2])})'
+          )
 
           if [[ "${{ github.event.inputs.package }}" != "" ]]; then
-          scripts=$(echo "$scripts" | jq -c "[.[] | select(.package == \"${{ github.event.inputs.package }}\")]")
+            scripts=$(
+              echo "$scripts" | \
+              jq -c "[.[] | select(.package == \"${{ github.event.inputs.package }}\")]"
+            )
           fi
 
           echo "matrix=$scripts" >> "$GITHUB_OUTPUT"
@@ -77,7 +83,7 @@ jobs:
 
           nix develop .#update --command bash -c "
             set -euo pipefail
-            cd \"\$OLDPWD\"
+            echo ${{ matrix.item.script }}
             ./${{ matrix.item.script }}
 
             echo $(nix eval --json .\#packagesInfo.aarch64-darwin.vivaldi.version)
@@ -119,7 +125,7 @@ jobs:
         run: |
           BRANCH_NAME="update/${{ matrix.item.package }}-$(date +%Y%m%d-%H%M%S)"
           echo "name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
-          git checkout -b "$BRANCH_NAME"
+          git switch -C "$BRANCH_NAME"
 
       - name: Run nix flake check
         if: steps.update.outputs.has_changes == 'true'
