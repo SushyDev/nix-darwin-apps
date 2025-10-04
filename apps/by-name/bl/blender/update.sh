@@ -61,7 +61,7 @@ get_current_package_info() {
 }
 
 fetch_page_content() {
-	local -r fetch_url="https://www.blender.org/download/"
+	local -r fetch_url="https://download.blender.org/release/Blender4.5/"
 
 	log_info "Fetching page content from $fetch_url"
 
@@ -80,7 +80,7 @@ extract_download_url() {
 
 	log_info "Extracting download URL"
 
-	local -r download_url="$(echo "$content" | grep -oE "$pattern" | head -n 1)"
+	local -r download_url="https://download.blender.org/release/Blender4.5/$(echo "$content" | grep -o "$pattern" | tail -n 1 | sed -E "$replace_pattern")"
 
 	[ -n "$download_url" ] || die "Failed to extract download URL from page content"
 
@@ -170,8 +170,8 @@ aarch64() {
 
 	read -r current_version current_sha256 < <(get_current_package_info "aarch64-darwin" "blender")
 
-	local -r DOWNLOAD_PATTERN='https://www\.blender\.org/download/release/Blender4\.5/blender-[0-9.]+-macos-arm64\.dmg'
-	local -r DOWNLOAD_EXTRACT_PATTERN=$DOWNLOAD_PATTERN
+	local -r DOWNLOAD_PATTERN='href="[^\"]*macos-arm64.dmg"'
+	local -r DOWNLOAD_EXTRACT_PATTERN='s/href="//;s/"//'
 	local -r VERSION_PATTERN='blender-([0-9.]+)-macos-arm64\.dmg'
 	local -r VERSION_EXTRACT_PATTERN='s/blender-([0-9.]+)-macos-arm64\.dmg/\1/'
 
@@ -204,8 +204,8 @@ x86_64() {
 
 	read -r current_version current_sha256 < <(get_current_package_info "x86_64-darwin" "blender")
 
-	local -r DOWNLOAD_PATTERN='https://www\.blender\.org/download/release/Blender4\.5/blender-[0-9.]+-macos-x64\.dmg'
-	local -r DOWNLOAD_EXTRACT_PATTERN=$DOWNLOAD_PATTERN
+	local -r DOWNLOAD_PATTERN='href="[^\"]*macos-x64.dmg"'
+	local -r DOWNLOAD_EXTRACT_PATTERN='s/href="//;s/"//'
 	local -r VERSION_PATTERN='blender-([0-9.]+)-macos-x64\.dmg'
 	local -r VERSION_EXTRACT_PATTERN='s/blender-([0-9.]+)-macos-x64\.dmg/\1/'
 
