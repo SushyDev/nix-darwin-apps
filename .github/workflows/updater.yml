@@ -85,7 +85,7 @@ jobs:
         if: steps.update.outputs.has_changes == 'true'
         id: branch
         run: |
-          BRANCH_NAME="update/${{ matrix.item.package }}-${{ steps.update.outputs.new_version }}
+          BRANCH_NAME="update/${{ matrix.item.package }}-${{ steps.update.outputs.new_version }}"
           echo "name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
           git switch -C "$BRANCH_NAME"
 
