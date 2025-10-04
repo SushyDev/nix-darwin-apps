@@ -71,55 +71,101 @@ jobs:
       - name: Setup Nix cache
         uses: DeterminateSystems/magic-nix-cache-action@v13
 
-      - name: Configure Git
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
       - name: Run update script
         id: update
         run: |
-          ./update-script.sh "${{ matrix.item.name }}" "${{ matrix.item.script }}"
-
-      - name: Create update branch
-        if: steps.update.outputs.has_changes == 'true'
-        id: branch
-        run: |
-          BRANCH_NAME="update/${{ matrix.item.package }}-${{ steps.update.outputs.new_version }}"
-          echo "name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
-          git switch -C "$BRANCH_NAME"
+          set +e
+          
+          readonly NAME="${{ matrix.item.name }}"
+          readonly SCRIPT="${{ matrix.item.script }}"
+          
+          readonly OLD_VERSION=$(nix eval --raw .\#packagesInfo.aarch64-darwin.$NAME.version)
+          	echo "old_version=$OLD_VERSION" >> "$GITHUB_OUTPUT"
+          
+          nix develop .#update --command bash -c "./$SCRIPT"
+          
+          EXIT_CODE=$?
+          
+          if [[ $EXIT_CODE -eq 0 ]]; then
+          	echo "status=success" >> "$GITHUB_OUTPUT"
+          
+          	readonly NEW_VERSION=$(nix eval --raw .\#packagesInfo.aarch64-darwin.$NAME.version)
+          		echo "new_version=$NEW_VERSION" >> "$GITHUB_OUTPUT"
+          
+          	if git diff --quiet; then
+          		echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          	else
+          		echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          	fi
+          else
+          	echo "status=failed" >> "$GITHUB_OUTPUT"
+          	echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          	echo "Update script failed with exit code $EXIT_CODE"
+          fi
 
       - name: Run nix flake check
         if: steps.update.outputs.has_changes == 'true'
         id: check
         run: |
           set +e
+
           nix flake check --no-build --show-trace
-          EXIT_CODE=$?
+
+          readonly EXIT_CODE=$?
 
           if [[ $EXIT_CODE -eq 0 ]]; then
-          echo "status=success" >> "$GITHUB_OUTPUT"
+            echo "status=success" >> "$GITHUB_OUTPUT"
           else
-          echo "status=failed" >> "$GITHUB_OUTPUT"
+            echo "status=failed" >> "$GITHUB_OUTPUT"
           fi
 
           exit $EXIT_CODE
 
-      - name: Commit changes
-        if: steps.update.outputs.has_changes == 'true' && steps.check.outputs.status == 'success'
+      - name: Configure Git
+        if: steps.check.outputs.status == 'success'
         run: |
-          git add -A
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Check existing update branch
+        if: steps.check.outputs.status == 'success'
+        id: branch_check
+        run: |
+          set +e
+
+          readonly BRANCH_NAME="update/${{ matrix.item.package }}-${{ steps.update.outputs.new_version }}"
+          echo "branch_name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
+          
+          if git ls-remote --heads origin "$BRANCH_NAME" | grep -q .; then
+            echo "branch_exists=true" >> "$GITHUB_OUTPUT"
+            echo "Branch $BRANCH_NAME already exists, skipping..."
+          else
+            echo "branch_exists=false" >> "$GITHUB_OUTPUT"
+            echo "Branch $BRANCH_NAME does not exist, will create..."
+          fi 
+
+      - name: Create update branch
+        if: steps.branch_check.outputs.branch_exists == 'false'
+        id: branch
+        run: |
+          git switch -C ${{ steps.branch_check.outputs.branch_name }}
+          echo "status=success" >> $GITHUB_OUTPUT
+
+      - name: Commit changes
+        if: steps.branch.outputs.status == 'success'
+        run: |
+          git add $(dirname ${{ matrix.item.script }})
           git commit -m "chore: update ${{ matrix.item.package }} to ${{ steps.update.outputs.new_version }}" \
           -m "Automated update from ${{ steps.update.outputs.old_version }} to ${{ steps.update.outputs.new_version }}" \
           -m "Updated by GitHub Actions workflow"
 
       - name: Push branch
-        if: steps.update.outputs.has_changes == 'true' && steps.check.outputs.status == 'success'
+        if: steps.branch.outputs.status == 'success'
         run: |
           git push origin "${{ steps.branch.outputs.name }}"
 
       - name: Create Pull Request
-        if: steps.update.outputs.has_changes == 'true' && steps.check.outputs.status == 'success'
+        if: steps.branch.outputs.status == 'success'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
