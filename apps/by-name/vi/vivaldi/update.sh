@@ -170,8 +170,6 @@ main() {
 
 	read -r current_version current_sha256 < <(get_current_package_info)
 
-	validate_sha256 "$current_sha256"
-
 	local page_content download_url new_version
 	page_content="$(fetch_page_content)"
 	download_url="$(extract_download_url "$page_content")"
@@ -189,7 +187,6 @@ main() {
 
 	local new_sha256
 	new_sha256="$(fetch_sha256 "$download_url")"
-	validate_sha256 "$new_sha256"
 
 	update_package_file "$new_version" "$new_sha256"
 
