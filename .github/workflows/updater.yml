@@ -82,10 +82,7 @@ jobs:
           readonly CURRENT_VERSION="$(nix eval --raw .\#packagesInfo.aarch64-darwin.$NAME.version)"
           echo "current_version=$CURRENT_VERSION" >> "$GITHUB_OUTPUT"
 
-          nix develop .#update --command bash -c "
-            source ./scripts/workflow/updater-lib.sh
-            ./$SCRIPT
-          "
+          nix develop .#update --command bash -c "./$SCRIPT"
 
           EXIT_CODE=$?
 

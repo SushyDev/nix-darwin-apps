@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+source ./scripts/workflow/updater-lib.sh;
+
 readonly SCRIPT_DIR="$(dirname "$0")"
 readonly PACKAGE_FILE="${SCRIPT_DIR}/default.nix"
 
