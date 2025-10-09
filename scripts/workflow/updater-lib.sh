@@ -15,7 +15,7 @@ check_dependencies() {
 	local -r required_deps=(curl jq nix nix-prefetch-url sed grep)
 	local -a missing_deps=()
 
-	for cmd in required_deps; do
+	for cmd in "${required_deps[@]}"; do
 		if ! command -v "$cmd" &> /dev/null; then
 			missing_deps+=("$cmd")
 		fi
@@ -68,4 +68,3 @@ fetch_sha256_from_url() {
 
 	echo "$sha256"
 }
-
