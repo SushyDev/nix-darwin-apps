@@ -48,19 +48,6 @@ extract_version_from_url() {
 	echo "$version"
 }
 
-fetch_sha256() {
-	local -r url="$1"
-
-	log_info "Fetching SHA256 checksum for new version"
-
-	local -r sha256="$(nix-prefetch-url "$url" 2>/dev/null)" || \
-		die "Failed to fetch SHA256 checksum from $url"
-
-	[ -n "$sha256" ] || die "Received empty SHA256 checksum"
-
-	echo "$sha256"
-}
-
 update_package_file() {
 	local -r current_version="$1"
 	local -r current_sha256="$2"
@@ -103,7 +90,7 @@ universal() {
 	read -r current_version current_sha256 < <(get_current_package_info "aarch64-darwin" "vivaldi")
 
 	local -r download_pattern='https://downloads\.vivaldi\.com/stable/Vivaldi\.[0-9.]+\.universal\.dmg'
-	local -r download_extract_pattern=$DOWNLOAD_PATTERN
+	local -r download_extract_pattern=$download_pattern
 	local -r version_pattern='Vivaldi\.([0-9.]+)\.universal\.dmg'
 	local -r version_extract_pattern='s/Vivaldi\.([0-9.]+)\.universal\.dmg/\1/'
 

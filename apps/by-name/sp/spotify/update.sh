@@ -33,19 +33,6 @@ extract_version_from_url() {
 	echo "$version"
 }
 
-fetch_sha256() {
-	local -r url="$1"
-
-	log_info "Fetching SHA256 checksum for new version"
-
-	local -r sha256="$(nix-prefetch-url "$url" 2>/dev/null)" || \
-		die "Failed to fetch SHA256 checksum from $url"
-
-	[ -n "$sha256" ] || die "Received empty SHA256 checksum"
-
-	echo "$sha256"
-}
-
 update_package_file() {
 	local -r current_version="$1"
 	local -r current_sha256="$2"
@@ -95,7 +82,7 @@ aarch64() {
 	local -r page_content="$(fetch_page_content $page_url)"
 	local -r download_url="https://download.scdn.co/SpotifyARM64.dmg"
 	local -r new_version="$(extract_version_from_url "$page_content" $version_pattern)"
-	local -r new_sha256="$(fetch_sha256 "$download_url")"
+	local -r new_sha256="$(fetch_sha256_from_url "$download_url")"
 
 	if [[ $new_sha256 != "" && "$new_sha256" == "$current_sha256" ]]; then
 		log_info "No update needed: SHA256 checksum matches current version"

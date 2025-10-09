@@ -122,7 +122,7 @@ x86_64() {
 	local -r page_content="$(fetch_page_content)"
 	local -r download_url="$(extract_download_url "$page_content" $download_pattern $download_extract_pattern)"
 	local -r new_version="$(extract_version_from_url "$download_url" $version_pattern $version_extract_pattern)"
-	local -r new_sha256="$(fetch_sha256 "$download_url")"
+	local -r new_sha256="$(fetch_sha256_from_url "$download_url")"
 
 	if [[ $new_sha256 != "" && "$new_sha256" == "$current_sha256" ]]; then
 		log_info "No update needed: SHA256 checksum matches current version"
