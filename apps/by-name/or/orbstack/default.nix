@@ -11,7 +11,7 @@ lib.mkDmgApp rec {
 		})
 		else (pkgs.fetchurl {
 			url = "https://cdn-updates.orbstack.dev/amd64/OrbStack_v${version}_amd64.dmg";
-			sha256 = "0nalyw8jsym0cd4syykjx2ir72h6lbv8653w03hr7fkxs7a1x0mi";
+			sha256 = "0n6qb7xnxgk9f4p1v6qmn1r3ib6ja15bqvzb5p3ki62af75756pq";
 		});
 
 	meta = with pkgs.lib; {
