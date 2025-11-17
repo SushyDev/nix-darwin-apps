@@ -70,7 +70,7 @@ jobs:
           fetch-depth: 0
 
       - name: Install Nix
-        uses: DeterminateSystems/determinate-nix-action@main
+        uses: DeterminateSystems/determinate-nix-action@v3
 
       - name: Setup FlakeHub
         uses: DeterminateSystems/flakehub-cache-action@main
