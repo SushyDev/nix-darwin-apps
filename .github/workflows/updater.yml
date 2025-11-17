@@ -22,7 +22,7 @@ concurrency:
 
 jobs:
   discover-update-scripts:
-    name: Discover Update Scripts
+    name: Discover update scripts
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.find-scripts.outputs.matrix }}
