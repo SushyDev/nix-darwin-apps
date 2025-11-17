@@ -69,14 +69,14 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Check Nix flake inputs
+        uses: DeterminateSystems/flake-checker-action@main
+
       - name: Install Nix
         uses: DeterminateSystems/determinate-nix-action@main
 
       - name: Setup FlakeHub
         uses: DeterminateSystems/flakehub-cache-action@main
-
-      - name: Flake health check
-        uses: DeterminateSystems/flake-checker-action@main
 
       - name: Run update script
         id: update
