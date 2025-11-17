@@ -15,8 +15,13 @@ permissions:
   contents: write
   pull-requests: write
 
+# See: https://docs.determinate.systems/guides/github-actions/#ci
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  discover-packages:
+  discover-update-scripts:
     name: Discover Update Scripts
     runs-on: ubuntu-latest
     outputs:
@@ -47,13 +52,16 @@ jobs:
   update-package:
     name: Update ${{ matrix.item.package }}
     runs-on: macos-latest
-    needs: discover-packages
-    if: needs.discover-packages.outputs.matrix != '[]'
+    permissions:
+      id-token: write
+      contents: read
+    needs: discover-update-scripts
+    if: needs.discover-update-scripts.outputs.matrix != '[]'
     strategy:
       fail-fast: false
       max-parallel: 3
       matrix:
-        item: ${{ fromJson(needs.discover-packages.outputs.matrix) }}
+        item: ${{ fromJson(needs.discover-update-scripts.outputs.matrix) }}
 
     steps:
       - name: Checkout repository
@@ -62,14 +70,13 @@ jobs:
           fetch-depth: 0
 
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v21
-        with:
-          extra-conf: |
-            accept-flake-config = true
-            experimental-features = nix-command flakes
+        uses: DeterminateSystems/determinate-nix-action@main
 
-      - name: Setup Nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@v13
+      - name: Setup FlakeHub
+        uses: DeterminateSystems/flakehub-cache-action@main
+
+      - name: Flake health check
+        uses: DeterminateSystems/nix-flake-checker-action@main
 
       - name: Run update script
         id: update
