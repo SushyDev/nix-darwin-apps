@@ -75,9 +75,6 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/determinate-nix-action@main
 
-      - name: Setup FlakeHub
-        uses: DeterminateSystems/flakehub-cache-action@main
-
       - name: Run update script
         id: update
         run: |
