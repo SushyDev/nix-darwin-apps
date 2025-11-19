@@ -11,10 +11,6 @@ on:
         required: false
         type: string
 
-permissions:
-  contents: write
-  pull-requests: write
-
 # See: https://docs.determinate.systems/guides/github-actions/#ci
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -58,6 +54,7 @@ jobs:
     permissions:
       id-token: write
       contents: write
+      pull-requests: write
     needs: discover-update-scripts
     if: needs.discover-update-scripts.outputs.matrix != '[]'
     strategy:
