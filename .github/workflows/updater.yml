@@ -57,7 +57,7 @@ jobs:
     runs-on: macos-latest
     permissions:
       id-token: write
-      contents: read
+      contents: write
     needs: discover-update-scripts
     if: needs.discover-update-scripts.outputs.matrix != '[]'
     strategy:
