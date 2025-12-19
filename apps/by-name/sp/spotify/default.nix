@@ -7,11 +7,11 @@ lib.mkDmgApp rec {
 	src = if pkgs.stdenv.hostPlatform.isAarch64 
 		then (pkgs.fetchurl {
 			url = "https://download.spotify.com/SpotifyARM64.dmg";
-			sha256 = "0d2xc7xlj5wv9f1q28wkjysfmhszp4vnhsvx7n3kd3x9jf2x7fpy";
+			sha256 = "13ymskn3pd6dibc5f5isfc30124v7ahyibn2vyammizm36cyj7i7";
 		})
 		else (pkgs.fetchurl {
 			url = "https://download.spotify.com/Spotify.dmg";
-			sha256 = "0pcd7ajzajhymb1qppma4qazr7smwad76d0jf5vry7kg5x6m0srp";
+			sha256 = "0lyyqw0xmzcp035vj9l59byfpl0vmwcq0iwcal8avp1i4qiiwjgx";
 		});
 
 	meta = with pkgs.lib; {
