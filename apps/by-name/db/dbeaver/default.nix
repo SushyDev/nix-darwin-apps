@@ -2,16 +2,16 @@
 
 lib.mkDmgApp rec {
 	pname = "dbeaver";
-	version = "25.3.0";
+	version = "25.3.1";
 
 	src = if pkgs.stdenv.hostPlatform.isAarch64 
 		then (pkgs.fetchurl {
 			url = "https://dbeaver.io/files/${version}/dbeaver-ce-${version}-macos-aarch64.dmg";
-			sha256 = "1cfzfaw5949qgd6l2fwhxl666xi5kfzmwxsj93qzxqzh6skpnbn6";
+			sha256 = "07jfgmy8xs459svcb74fqf9mlm9nh6wwhx3pdl32mjfhz15n37vh";
 		})
 		else (pkgs.fetchurl {
 			url = "https://dbeaver.io/files/${version}/dbeaver-ce-${version}-macos-x86_64.dmg";
-			sha256 = "1jssxywj99cni03ln5ahww80wbmpg8gnzslp9lvdadgkschxj6cb";
+			sha256 = "0y77rm19h0rzy7351wx9xcs7619ak45778ach3v63imnl70hr0gg";
 		});
 
 	meta = with pkgs.lib; {
