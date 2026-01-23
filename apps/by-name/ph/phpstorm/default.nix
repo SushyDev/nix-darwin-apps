@@ -2,16 +2,16 @@
 
 lib.mkDmgApp rec {
 	pname = "phpstorm";
-	version = "2025.3.1.1";
+	version = "2025.3.2";
 
 	src = if pkgs.stdenv.hostPlatform.isAarch64 
 		then (pkgs.fetchurl {
 			url = "https://download-cdn.jetbrains.com/webide/PhpStorm-${version}-aarch64.dmg";
-			sha256 = "1g7r8qjafkddcb7cwca5z19fmy4sny4ki5axw1d5gldmsbqgan13";
+			sha256 = "13mhih2ffpb2dg0pc7gw23br4xn1sn9a30y62hnirs2v5ds5qcyp";
 		})
 		else (pkgs.fetchurl {
 			url = "https://download-cdn.jetbrains.com/webide/PhpStorm-${version}.dmg";
-			sha256 = "1nfsjmnzspdnzzgj08prmigic9qv0dxbpchdzhpii0a9amnyp1ig";
+			sha256 = "0y49x3g8cnxhj04xn5f77kkv9ydnx6w310zvc342spf9562czmxh";
 		});
 
 	meta = with pkgs.lib; {
