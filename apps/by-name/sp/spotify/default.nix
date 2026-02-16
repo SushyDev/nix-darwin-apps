@@ -2,7 +2,7 @@
 
 lib.mkDmgApp rec {
 	pname = "spotify";
-	version = "1.2.82.428";
+	version = "1.2.83.461";
 
 	src = if pkgs.stdenv.hostPlatform.isAarch64 
 		then (pkgs.fetchurl {
