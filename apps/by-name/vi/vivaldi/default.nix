@@ -2,11 +2,11 @@
 
 lib.mkDmgApp rec {
 	pname = "vivaldi";
-	version = "7.8.3925.66";
+	version = "7.8.3925.70";
 
 	src = pkgs.fetchurl {
 		url = "https://downloads.vivaldi.com/stable/Vivaldi.${version}.universal.dmg";
-		sha256 = "0f02vm9hza44ld9nj1ff6a32rxiw23gq57b3yn7ffriycjjqpcbk";
+		sha256 = "0xir8b2fk22wbi0x6g7xj6lhjx0xrjh5y65y921w67vshbamkbqx";
 	};
 
 	meta = with pkgs.lib; {
