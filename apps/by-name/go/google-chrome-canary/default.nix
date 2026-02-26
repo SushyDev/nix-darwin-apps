@@ -2,11 +2,11 @@
 
 lib.mkDmgApp rec {
 	pname = "google-chrome-canary";
-	version = "4.5.26";
+	version = "4.5.27";
 
 	src = pkgs.fetchurl {
 		url = "https://dl.google.com/chrome/mac/universal/canary/googlechromecanary.dmg";
-		sha256 = "0fmb06ffvb6mkm92bjfzpxrqxv6xg0zzdh5nywpq0f66f60hsv34";
+		sha256 = "0qxvqhmc8ya4wvy43zsjgcp7d6kg21h4g0lx16ajghsrjgmvba2z";
 	};
 
 	meta = with pkgs.lib; {
