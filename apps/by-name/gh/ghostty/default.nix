@@ -2,11 +2,11 @@
 
 lib.mkDmgApp rec {
 	pname = "ghostty";
-	version = "1.2.3";
+	version = "1.3.0";
 
 	src = pkgs.fetchurl { 
 		url = "https://release.files.ghostty.org/1.2.3/Ghostty.dmg";
-		sha256 = "0sr0hg28aafd5lx8izq7ni25nmy7k18g9ppqp5x04a3f24gyjppk";
+		sha256 = "1i8c3p9lq3bxxccgmgdnznkj4m96vzsxp7rvq04804c217krizjk";
 	};
 
 	meta = with pkgs.lib; {
