@@ -2,16 +2,16 @@
 
 lib.mkDmgApp rec {
 	pname = "orbstack";
-	version = "2.0.5_19905";
+	version = "2.1.0_19993";
 
 	src = if pkgs.stdenv.hostPlatform.isAarch64 
 		then (pkgs.fetchurl {
 			url = "https://cdn-updates.orbstack.dev/arm64/OrbStack_v${version}_arm64.dmg";
-			sha256 = "0wbmda441j3z0hf8zgmh1mfbm80g92qgvds8w7p7zp6z3iaqj630";
+			sha256 = "1hzlj5smnr27xnj7zrrxi87a207hgbljr5idfgnjw0jk7ynbgp35";
 		})
 		else (pkgs.fetchurl {
 			url = "https://cdn-updates.orbstack.dev/amd64/OrbStack_v${version}_amd64.dmg";
-			sha256 = "1sqp3nfcqzlrdy10q2gjkfrmkx393bnj977rsxfggxr6rlnzln58";
+			sha256 = "06crringbmadjd5kaj3jjws3yvbcq0q7y6c0bf9rb7ai0wa2vl64";
 		});
 
 	meta = with pkgs.lib; {
