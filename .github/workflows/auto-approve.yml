@@ -1,0 +1,32 @@
+name: Auto-approve Automated PRs
+
+on:
+  pull_request:
+    types:
+      - opened
+      - labeled
+
+jobs:
+  auto-approve:
+    name: Approve automated PR
+    runs-on: ubuntu-latest
+    # Only run for PRs that carry the 'automated' label
+    if: contains(github.event.pull_request.labels.*.name, 'automated')
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Generate GitHub App token
+        id: app_token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APPROVER_APP_ID }}
+          private-key: ${{ secrets.APPROVER_APP_PRIVATE_KEY }}
+
+      - name: Approve Pull Request
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+        run: |
+          gh pr review "${{ github.event.pull_request.number }}" \
+            --repo "${{ github.repository }}" \
+            --approve \
+            --body "Automated approval: PR was created by the package updater workflow and has passed \`nix flake check\`."
