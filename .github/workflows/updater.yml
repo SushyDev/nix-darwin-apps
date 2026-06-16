@@ -170,6 +170,7 @@ jobs:
           GIT_COMMITTER_EMAIL: "github-actions[bot]@users.noreply.github.com"
           GIT_AUTHOR_NAME: "github-actions[bot]"
           GIT_AUTHOR_EMAIL: "github-actions[bot]@users.noreply.github.com"
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
         run: |
           git add $(dirname ${{ matrix.item.script }})
           git commit -m "chore: update ${{ matrix.item.package }} to ${{ steps.update.outputs.new_version }}" \
