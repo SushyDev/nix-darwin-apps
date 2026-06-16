@@ -147,14 +147,14 @@ jobs:
 
           readonly BRANCH_NAME="update/${{ matrix.item.package }}-${{ steps.update.outputs.new_version }}"
           echo "branch_name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
-          
+
           if git ls-remote --heads origin "$BRANCH_NAME" | grep -q .; then
             echo "branch_exists=true" >> "$GITHUB_OUTPUT"
             echo "Branch $BRANCH_NAME already exists, skipping..."
           else
             echo "branch_exists=false" >> "$GITHUB_OUTPUT"
             echo "Branch $BRANCH_NAME does not exist, will create..."
-          fi 
+          fi
 
       - name: Create update branch
         if: steps.branch_check.outputs.branch_exists == 'false'
@@ -163,18 +163,18 @@ jobs:
           git switch -C ${{ steps.branch_check.outputs.branch_name }}
           echo "status=success" >> $GITHUB_OUTPUT
 
-       - name: Commit changes
-         if: steps.branch.outputs.status == 'success'
-         env:
-           GIT_COMMITTER_NAME: "github-actions[bot]"
-           GIT_COMMITTER_EMAIL: "github-actions[bot]@users.noreply.github.com"
-           GIT_AUTHOR_NAME: "github-actions[bot]"
-           GIT_AUTHOR_EMAIL: "github-actions[bot]@users.noreply.github.com"
-         run: |
-           git add $(dirname ${{ matrix.item.script }})
-           git commit -m "chore: update ${{ matrix.item.package }} to ${{ steps.update.outputs.new_version }}" \
-           -m "Automated update from ${{ steps.update.outputs.current_version }} to ${{ steps.update.outputs.new_version }}" \
-           -m "Updated by GitHub Actions workflow"
+      - name: Commit changes
+        if: steps.branch.outputs.status == 'success'
+        env:
+          GIT_COMMITTER_NAME: "github-actions[bot]"
+          GIT_COMMITTER_EMAIL: "github-actions[bot]@users.noreply.github.com"
+          GIT_AUTHOR_NAME: "github-actions[bot]"
+          GIT_AUTHOR_EMAIL: "github-actions[bot]@users.noreply.github.com"
+        run: |
+          git add $(dirname ${{ matrix.item.script }})
+          git commit -m "chore: update ${{ matrix.item.package }} to ${{ steps.update.outputs.new_version }}" \
+          -m "Automated update from ${{ steps.update.outputs.current_version }} to ${{ steps.update.outputs.new_version }}" \
+          -m "Updated by GitHub Actions workflow"
 
       - name: Push branch
         if: steps.branch.outputs.status == 'success'
