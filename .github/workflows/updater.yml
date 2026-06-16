@@ -72,6 +72,9 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/determinate-nix-action@main
 
+      - name: Enable Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
       - name: Run update script
         id: update
         run: |
@@ -122,6 +125,14 @@ jobs:
 
           exit $EXIT_CODE
 
+      - name: Generate GitHub App token
+        if: steps.check.outputs.status == 'success'
+        id: app_token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APPROVER_APP_ID }}
+          private-key: ${{ secrets.APPROVER_APP_PRIVATE_KEY }}
+
       - name: Configure Git
         if: steps.check.outputs.status == 'success'
         run: |
@@ -152,16 +163,23 @@ jobs:
           git switch -C ${{ steps.branch_check.outputs.branch_name }}
           echo "status=success" >> $GITHUB_OUTPUT
 
-      - name: Commit changes
-        if: steps.branch.outputs.status == 'success'
-        run: |
-          git add $(dirname ${{ matrix.item.script }})
-          git commit -m "chore: update ${{ matrix.item.package }} to ${{ steps.update.outputs.new_version }}" \
-          -m "Automated update from ${{ steps.update.outputs.current_version }} to ${{ steps.update.outputs.new_version }}" \
-          -m "Updated by GitHub Actions workflow"
+       - name: Commit changes
+         if: steps.branch.outputs.status == 'success'
+         env:
+           GIT_COMMITTER_NAME: "github-actions[bot]"
+           GIT_COMMITTER_EMAIL: "github-actions[bot]@users.noreply.github.com"
+           GIT_AUTHOR_NAME: "github-actions[bot]"
+           GIT_AUTHOR_EMAIL: "github-actions[bot]@users.noreply.github.com"
+         run: |
+           git add $(dirname ${{ matrix.item.script }})
+           git commit -m "chore: update ${{ matrix.item.package }} to ${{ steps.update.outputs.new_version }}" \
+           -m "Automated update from ${{ steps.update.outputs.current_version }} to ${{ steps.update.outputs.new_version }}" \
+           -m "Updated by GitHub Actions workflow"
 
       - name: Push branch
         if: steps.branch.outputs.status == 'success'
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
         run: |
           git push origin "${{ steps.branch_check.outputs.branch_name }}"
 
