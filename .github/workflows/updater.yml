@@ -24,7 +24,7 @@ jobs:
       matrix: ${{ steps.find-scripts.outputs.matrix }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
       - name: Check Nix flake inputs
         uses: DeterminateSystems/flake-checker-action@main
@@ -65,7 +65,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -128,7 +128,7 @@ jobs:
       - name: Generate GitHub App token
         if: steps.check.outputs.status == 'success'
         id: app_token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ secrets.APPROVER_APP_ID }}
           private-key: ${{ secrets.APPROVER_APP_PRIVATE_KEY }}

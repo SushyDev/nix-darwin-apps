@@ -1,0 +1,56 @@
+name: Update flake.lock
+
+on:
+  schedule:
+    # Run weekly on Mondays at 3 AM UTC
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  update-flake-lock:
+    name: Update flake.lock
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Install Nix
+        uses: DeterminateSystems/determinate-nix-action@main
+
+      - name: Enable Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Generate GitHub App token
+        id: app_token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APPROVER_APP_ID }}
+          private-key: ${{ secrets.APPROVER_APP_PRIVATE_KEY }}
+
+      - name: Update flake.lock
+        uses: DeterminateSystems/update-flake-lock@main
+        with:
+          token: ${{ steps.app_token.outputs.token }}
+          pr-title: "chore: update flake.lock"
+          pr-labels: |
+            automated
+            dependencies
+          commit-msg: "chore: update flake.lock"
+
+      - name: Enable auto-merge
+        env:
+          GH_TOKEN: ${{ steps.app_token.outputs.token }}
+        run: |
+          PR_NUMBER=$(gh pr list --label "dependencies" --label "automated" --state open --json number --jq '.[0].number')
+          if [[ -n "$PR_NUMBER" && "$PR_NUMBER" != "null" ]]; then
+            gh pr merge "$PR_NUMBER" --auto --squash --delete-branch
+          fi
