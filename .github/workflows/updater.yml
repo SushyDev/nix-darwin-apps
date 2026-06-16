@@ -167,10 +167,11 @@ jobs:
 
       - name: Create Pull Request
         if: steps.branch.outputs.status == 'success'
+        id: create_pr
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          PR_BODY="## 🤖 Automated Package Update
+          PR_BODY="## Automated Package Update
 
           **Package:** \`${{ matrix.item.package }}\`
           **Previous Version:** \`${{ steps.update.outputs.current_version }}\`
@@ -180,10 +181,10 @@ jobs:
 
           ### Changes
           This PR updates the package definition with:
-          - ✅ New version number
-          - ✅ Updated SHA256 checksum
-          - ✅ Verified package evaluation
-          - ✅ Passed \`nix flake check\`
+          - New version number
+          - Updated SHA256 checksum
+          - Verified package evaluation
+          - Passed \`nix flake check\`
 
           ### Automation Details
           - **Workflow:** ${{ github.workflow }}
@@ -193,25 +194,34 @@ jobs:
           ---
 
           <details>
-          <summary>📋 Update Script Output</summary>
+          <summary>Update Script Output</summary>
 
           \`\`\`
           See job logs for detailed output: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           \`\`\`
 
-          </details>
+          </details>"
 
-          ---
-
-          Please review and merge if everything looks correct."
-
-          gh pr create \
+          PR_URL=$(gh pr create \
           --title "chore: update ${{ matrix.item.package }} to ${{ steps.update.outputs.new_version }}" \
           --body "$PR_BODY" \
           --base main \
-          --head "${{ steps.branch.outputs.name }}" \
+          --head "${{ steps.branch_check.outputs.branch_name }}" \
           --label "automated" \
-          --label "package update"
+          --label "package update")
+
+          echo "pr_url=$PR_URL" >> "$GITHUB_OUTPUT"
+          echo "pr_number=$(echo "$PR_URL" | grep -o '[0-9]*$')" >> "$GITHUB_OUTPUT"
+
+      - name: Enable auto-merge
+        if: steps.create_pr.outputs.pr_number != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr merge "${{ steps.create_pr.outputs.pr_number }}" \
+          --auto \
+          --squash \
+          --delete-branch
 
       - name: Report status
         if: always()
@@ -227,4 +237,7 @@ jobs:
             echo "| Nix Check | ${{ steps.check.outputs.status == 'success' && 'Passed' || 'Failed' }} |" >> $GITHUB_STEP_SUMMARY
             echo "| Current Version | \`${{ steps.update.outputs.current_version }}\` |" >> $GITHUB_STEP_SUMMARY
             echo "| New Version | \`${{ steps.update.outputs.new_version }}\` |" >> $GITHUB_STEP_SUMMARY
+            if [[ "${{ steps.create_pr.outputs.pr_url }}" != "" ]]; then
+              echo "| Pull Request | ${{ steps.create_pr.outputs.pr_url }} |" >> $GITHUB_STEP_SUMMARY
+            fi
           fi
