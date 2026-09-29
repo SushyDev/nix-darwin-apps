@@ -2,11 +2,11 @@
 
 lib.mkDmgApp rec {
 	pname = "slack";
-	version = "4.52.155";
+	version = "4.52.171";
 
 	src = pkgs.fetchurl {
 		url = "https://downloads.slack-edge.com/desktop-releases/mac/universal/${version}/Slack-${version}-macOS.dmg";
-		sha256 = "0bnwlp1r3jaj5vdspmfq89qkvqbpfr5zh65v65akg7ggj0yb65f4";
+		sha256 = "0zr3xqpfk0h38szi5w47gr5fn4fnl1hrdlvyv68f2kddpq98g4in";
 	};
 
 	meta = with pkgs.lib; {
